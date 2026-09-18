@@ -26,6 +26,7 @@ import {
   Clock,
   TrendingUp,
   Loader2,
+  Volume2,
 } from "lucide-react";
 import type { Space, Recommendation, LearningEvent } from "@/lib/types";
 
@@ -77,16 +78,37 @@ export default function DashboardPage() {
     user?.user_metadata?.full_name ||
     "Student";
 
+  const playWelcomeAudio = () => {
+    if (!("speechSynthesis" in window)) {
+      alert("Your browser does not support text-to-speech.");
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(
+      `Welcome back to A I Study Companion, ${name.split(" ")[0]}! You have ${stats?.total_projects || 0} active projects, and your average mastery is ${stats?.avg_mastery || 0} percent. Keep up the great work!`
+    );
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-[var(--text-primary)]">
-          {greeting}, {name.split(" ")[0]} 👋
-        </h1>
-        <p className="text-[var(--text-muted)] mt-1">
-          Here&apos;s your learning overview
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] flex items-center gap-3">
+            {greeting}, {name.split(" ")[0]} 👋
+            <button 
+              onClick={playWelcomeAudio}
+              className="p-2 rounded-full hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--primary-light)] transition-colors"
+              title="Play Voice Tour"
+            >
+              <Volume2 className="w-5 h-5" />
+            </button>
+          </h1>
+          <p className="text-[var(--text-muted)] mt-1">
+            Here&apos;s your learning overview
+          </p>
+        </div>
       </div>
 
       {/* Stats Grid */}

@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { formatDate, cn } from "@/lib/utils";
-import { Send, Loader2, Bot, User, FileText, Sparkles, Plus, MessageSquare, Mic, MicOff } from "lucide-react";
+import { Send, Loader2, Bot, User, FileText, Sparkles, Plus, MessageSquare, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -33,6 +33,7 @@ export default function TutorPage() {
   const [streaming, setStreaming] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isListening, setIsListening] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load conversations
@@ -63,17 +64,22 @@ export default function TutorPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = async (text?: string) => {
-    const message = text || input.trim();
-    if (!message || streaming) return;
+  const sendMessage = async (text: string = input) => {
+    if (!text.trim() || streaming) return;
 
+    const message = text;
     setInput("");
-    setSuggestions([]);
     setStreaming(true);
+    setSuggestions([]);
 
-    // Optimistic UI: add user message
+    // Stop any current speech if user sends a new message
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    // Optimistic user message
     const userMsg: ChatMessage = {
-      id: `temp-${Date.now()}`,
+      id: `temp-user-${Date.now()}`,
       role: "user",
       content: message,
       citations: [],
@@ -89,6 +95,8 @@ export default function TutorPage() {
     };
     setMessages((prev) => [...prev, assistantMsg]);
 
+    let finalAiMessage = "";
+
     try {
       const stream = api.stream(`/projects/${projectId}/tutor/chat`, {
         message,
@@ -102,6 +110,7 @@ export default function TutorPage() {
           loadConversations();
         } else if (event.type === "content") {
           const content = event.content as string;
+          finalAiMessage += content;
           setMessages((prev) => {
             const updated = [...prev];
             const lastIndex = updated.length - 1;
@@ -136,6 +145,12 @@ export default function TutorPage() {
       });
     } finally {
       setStreaming(false);
+      // Read response out loud if Voice Mode is active
+      if (voiceMode && finalAiMessage && "speechSynthesis" in window) {
+        const cleanText = finalAiMessage.replace(/[#*`_[\]]/g, "");
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        window.speechSynthesis.speak(utterance);
+      }
     }
   };
 
@@ -282,6 +297,24 @@ export default function TutorPage() {
         {/* Input */}
         <div className="p-4 border-t border-[var(--border-default)]">
           <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="flex gap-2 relative">
+            <button
+              type="button"
+              onClick={() => {
+                setVoiceMode(!voiceMode);
+                if (voiceMode && "speechSynthesis" in window) {
+                  window.speechSynthesis.cancel();
+                }
+              }}
+              className={cn(
+                "p-2.5 rounded-lg border transition-colors flex-shrink-0 flex items-center justify-center",
+                voiceMode
+                  ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary-light)]"
+                  : "border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              )}
+              title={voiceMode ? "Voice Mode ON (AI will speak)" : "Voice Mode OFF"}
+            >
+              {voiceMode ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </button>
             <div className="relative flex-1">
               <input
                 type="text"
