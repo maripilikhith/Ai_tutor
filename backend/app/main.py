@@ -25,13 +25,10 @@ def create_app() -> FastAPI:
     )
 
     # ── CORS Middleware ──
-    # Allow the Next.js frontend to call the API
+    # Allow all origins for the portfolio/assignment deployment to prevent Vercel preview domain issues
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            settings.frontend_url,
-            "http://localhost:3000",  # Dev fallback
-        ],
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
