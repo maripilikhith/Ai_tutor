@@ -114,7 +114,7 @@ async def process_material(
 
                 sample_text = all_text[:20000] # Give it enough context to find broad topics
                 extracted_doc_concepts = await generate_structured(
-                    prompt=f"Extract 5 to 15 high-level, overarching topics from this study material. Do NOT extract overly specific or granular sub-topics. Group concepts into broad themes.\n\nMaterial:\n\n{sample_text}",
+                    prompt=f"Extract ONLY the top 3 to 5 core, overarching topics from this study material. Do NOT extract specific sub-topics. Keep the list as short and broad as possible.\n\nMaterial:\n\n{sample_text}",
                     response_schema=DocumentConcepts,
                     user_id=user_id,
                     project_id=project_id,
