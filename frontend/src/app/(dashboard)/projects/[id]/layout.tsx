@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import useSWR from "swr";
+import useSWR, { preload } from "swr";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { api, swrFetcher } from "@/lib/api";
@@ -17,22 +17,35 @@ import { ArrowLeft, Loader2, BookOpen, MessageSquare, HelpCircle, BarChart3, Tre
 import type { Project } from "@/lib/types";
 
 const tabs = [
-  { href: "", label: "Overview", icon: BookOpen },
-  { href: "/materials", label: "Materials", icon: BookOpen },
-  { href: "/tutor", label: "AI Tutor", icon: MessageSquare },
-  { href: "/quiz", label: "Quiz", icon: HelpCircle },
-  { href: "/mastery", label: "Mastery", icon: Brain },
-  { href: "/growth", label: "Growth", icon: TrendingUp },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "", label: "Overview", icon: BookOpen, apiPath: "" },
+  { href: "/materials", label: "Materials", icon: BookOpen, apiPath: "/materials" },
+  { href: "/tutor", label: "AI Tutor", icon: MessageSquare, apiPath: "" },
+  { href: "/quiz", label: "Quiz", icon: HelpCircle, apiPath: "/quizzes" },
+  { href: "/mastery", label: "Mastery", icon: Brain, apiPath: "/mastery" },
+  { href: "/growth", label: "Growth", icon: TrendingUp, apiPath: "/growth" },
+  { href: "/analytics", label: "Analytics", icon: BarChart3, apiPath: "/analytics" },
 ];
 
 export default function ProjectLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
   const projectId = params.id as string;
-  const { data: project, isLoading: loading } = useSWR<Project>(`/projects/${projectId}`, swrFetcher);
+  const { data: project, isLoading: loading } = useSWR<Project>(`/projects/${projectId}`, swrFetcher, { keepPreviousData: true });
 
-  if (loading) return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" /></div>;
+  if (loading && !project) return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg skeleton" />
+        <div className="space-y-2">
+          <div className="h-6 w-48 skeleton" />
+          <div className="h-4 w-64 skeleton" />
+        </div>
+      </div>
+      <div className="h-10 w-full skeleton" />
+      <div className="h-64 w-full skeleton" />
+    </div>
+  );
+
   if (!project) return <div className="text-center py-20 text-[var(--text-muted)]">Project not found</div>;
 
   const basePath = `/projects/${projectId}`;
@@ -59,6 +72,11 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
             <Link
               key={tab.href}
               href={href}
+              onMouseEnter={() => {
+                if (tab.apiPath) {
+                  preload(`/projects/${projectId}${tab.apiPath}`, swrFetcher);
+                }
+              }}
               className={cn(
                 "flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap",
                 isActive

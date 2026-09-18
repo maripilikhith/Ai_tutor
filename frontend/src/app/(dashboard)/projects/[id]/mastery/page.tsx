@@ -15,11 +15,18 @@ export default function MasteryPage() {
   const { id } = useParams();
   const projectId = id as string;
 
-  const { data, isLoading: loading } = useSWR<{ items: ConceptMastery[]; avg_mastery: number }>(`/projects/${projectId}/mastery`, swrFetcher);
+  const { data, isLoading: loading } = useSWR<{ items: ConceptMastery[]; avg_mastery: number }>(`/projects/${projectId}/mastery`, swrFetcher, { keepPreviousData: true });
   const mastery = data?.items || [];
   const avgMastery = data?.avg_mastery || 0;
 
-  if (loading && !data) return <div className="flex items-center justify-center h-40"><Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" /></div>;
+  if (loading && !data) return (
+    <div className="space-y-4 animate-fade-in">
+      <div className="h-20 w-full skeleton" />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {[...Array(6)].map((_, i) => <div key={i} className="h-32 skeleton" />)}
+      </div>
+    </div>
+  );
 
   if (mastery.length === 0) {
     return (

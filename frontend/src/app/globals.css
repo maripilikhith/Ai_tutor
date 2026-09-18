@@ -400,3 +400,18 @@ body {
   color: var(--text-primary);
   font-weight: 600;
 }
+
+/* ============================================
+   Skeleton Loaders
+   ============================================ */
+@keyframes skeleton-pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+
+.skeleton {
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

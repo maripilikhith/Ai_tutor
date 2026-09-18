@@ -22,15 +22,25 @@ export default function ProjectOverviewPage() {
   const { id } = useParams();
   const projectId = id as string;
   
-  const { data: overview, isLoading: overviewLoading } = useSWR<ProjectOverview>(`/projects/${projectId}/analytics`, swrFetcher);
-  const { data: masteryData, isLoading: masteryLoading } = useSWR<{ items: ConceptMastery[] }>(`/projects/${projectId}/mastery`, swrFetcher);
-  const { data: recsData, isLoading: recsLoading } = useSWR<{ items: Recommendation[] }>(`/projects/${projectId}/recommendations`, swrFetcher);
+  const { data: overview, isLoading: overviewLoading } = useSWR<ProjectOverview>(`/projects/${projectId}/analytics`, swrFetcher, { keepPreviousData: true });
+  const { data: masteryData, isLoading: masteryLoading } = useSWR<{ items: ConceptMastery[] }>(`/projects/${projectId}/mastery`, swrFetcher, { keepPreviousData: true });
+  const { data: recsData, isLoading: recsLoading } = useSWR<{ items: Recommendation[] }>(`/projects/${projectId}/recommendations`, swrFetcher, { keepPreviousData: true });
 
-  const loading = overviewLoading || masteryLoading || recsLoading;
+  const loading = (overviewLoading && !overview) || (masteryLoading && !masteryData) || (recsLoading && !recsData);
   const mastery = masteryData?.items || [];
   const recs = recsData?.items || [];
 
-  if (loading) return <div className="flex items-center justify-center h-40"><Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" /></div>;
+  if (loading) return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[...Array(6)].map((_, i) => <div key={i} className="h-24 skeleton" />)}
+      </div>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="h-64 skeleton" />
+        <div className="h-64 skeleton" />
+      </div>
+    </div>
+  );
 
   const s = overview?.stats || [];
 

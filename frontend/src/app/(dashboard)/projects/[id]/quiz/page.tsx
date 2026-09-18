@@ -161,9 +161,11 @@ export default function QuizPage() {
             <h3 className="text-lg font-semibold text-[var(--text-primary)]">Quiz History</h3>
           </div>
           
-          {loadingPast ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
+          {loadingPast && !pastQuizzesData ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-16 w-full skeleton" />
+              ))}
             </div>
           ) : pastQuizzes.length === 0 ? (
             <div className="gradient-card p-8 text-center text-[var(--text-muted)]">

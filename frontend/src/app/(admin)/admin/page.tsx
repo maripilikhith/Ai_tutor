@@ -19,9 +19,19 @@ interface AdminDashboard {
 }
 
 export default function AdminPage() {
-  const { data, isLoading: loading } = useSWR<AdminDashboard>("/admin/dashboard", swrFetcher);
+  const { data, isLoading: loading } = useSWR<AdminDashboard>("/admin/dashboard", swrFetcher, { keepPreviousData: true });
 
-  if (loading) return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" /></div>;
+  if (loading && !data) return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="h-10 w-48 skeleton mb-6" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[...Array(6)].map((_, i) => <div key={i} className="h-24 skeleton" />)}
+      </div>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-32 skeleton" />)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">

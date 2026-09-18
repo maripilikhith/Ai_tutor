@@ -19,6 +19,7 @@ export default function MaterialsPage() {
   const [dragActive, setDragActive] = useState(false);
 
   const { data, isLoading: loading, mutate } = useSWR<{ items: Material[] }>(`/projects/${projectId}/materials`, swrFetcher, {
+    keepPreviousData: true,
     refreshInterval: (data) => {
       const stillProcessing = data?.items.some((m) => m.status === "processing" || m.status === "queued");
       return stillProcessing ? 5000 : 0;
@@ -26,6 +27,15 @@ export default function MaterialsPage() {
   });
 
   const materials = data?.items || [];
+
+  if (loading && !data) return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="h-48 w-full skeleton" />
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-16 w-full skeleton" />)}
+      </div>
+    </div>
+  );
 
   const handleUpload = async (files: FileList) => {
     setUploading(true);
@@ -51,8 +61,6 @@ export default function MaterialsPage() {
     setDragActive(false);
     if (e.dataTransfer.files.length) handleUpload(e.dataTransfer.files);
   };
-
-  if (loading) return <div className="flex items-center justify-center h-40"><Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" /></div>;
 
   return (
     <div className="space-y-6 animate-fade-in">
