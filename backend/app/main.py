@@ -38,15 +38,24 @@ def create_app() -> FastAPI:
     _register_routers(app)
 
     # ── Startup & Shutdown Events ──
+    import asyncio
+    from app.workers.runner import run_worker
+
+    # Store background tasks so we can cancel them gracefully
+    app.state.background_tasks = set()
+
     @app.on_event("startup")
     async def on_startup():
-        """Initialize connections on app startup."""
-        pass  # Will init Supabase + Redis clients here
+        """Initialize connections and start background worker."""
+        # Build the 'second lane' on the highway
+        worker_task = asyncio.create_task(run_worker(poll_interval=10))
+        app.state.background_tasks.add(worker_task)
 
     @app.on_event("shutdown")
     async def on_shutdown():
         """Clean up connections on app shutdown."""
-        pass  # Will close connections here
+        for task in app.state.background_tasks:
+            task.cancel()
 
     return app
 
