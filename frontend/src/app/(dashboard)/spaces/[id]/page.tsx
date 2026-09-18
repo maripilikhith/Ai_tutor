@@ -6,10 +6,11 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { Plus, ArrowLeft, Loader2, FolderOpen, X, Trash2 } from "lucide-react";
 import type { Space, Project } from "@/lib/types";
@@ -18,34 +19,25 @@ export default function SpaceDashboardPage() {
   const params = useParams();
   const spaceId = params.id as string;
   const router = useRouter();
-  const [space, setSpace] = useState<Space | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  const { data: space, isLoading: spaceLoading } = useSWR<Space>(`/spaces/${spaceId}`, swrFetcher);
+  const { data: projectsData, isLoading: projectsLoading, mutate: mutateProjects } = useSWR<{ items: Project[] }>(`/projects?space_id=${spaceId}`, swrFetcher);
+  
+  const projects = projectsData?.items || [];
+  const loading = spaceLoading || projectsLoading;
+
   const [showCreate, setShowCreate] = useState(false);
   const [deleteProjectTarget, setDeleteProjectTarget] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState(false);
   const [deletingSpace, setDeletingSpace] = useState(false);
   const [confirmDeleteSpace, setConfirmDeleteSpace] = useState(false);
 
-  useEffect(() => { load(); }, [spaceId]);
-
-  async function load() {
-    try {
-      const [s, p] = await Promise.all([
-        api.get<Space>(`/spaces/${spaceId}`),
-        api.get<{ items: Project[] }>(`/projects?space_id=${spaceId}`),
-      ]);
-      setSpace(s);
-      setProjects(p.items);
-    } catch {} finally { setLoading(false); }
-  }
-
   async function handleDeleteProject() {
     if (!deleteProjectTarget) return;
     setDeletingProject(true);
     try {
       await api.delete(`/projects/${deleteProjectTarget.id}`);
-      setProjects((prev) => prev.filter((p) => p.id !== deleteProjectTarget.id));
+      mutateProjects({ items: projects.filter((p) => p.id !== deleteProjectTarget.id) }, false);
       setDeleteProjectTarget(null);
     } catch {} finally { setDeletingProject(false); }
   }
@@ -125,7 +117,7 @@ export default function SpaceDashboardPage() {
         </div>
       )}
 
-      {showCreate && <CreateProjectModal spaceId={spaceId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); load(); }} />}
+      {showCreate && <CreateProjectModal spaceId={spaceId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); mutateProjects(); }} />}
 
       {/* Delete Project Modal */}
       {deleteProjectTarget && (

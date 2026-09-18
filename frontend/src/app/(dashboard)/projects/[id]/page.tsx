@@ -6,10 +6,10 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { formatDate, getMasteryLevel } from "@/lib/utils";
 import { Loader2, BookOpen, Brain, HelpCircle, MessageSquare, TrendingUp, Sparkles } from "lucide-react";
 import type { ConceptMastery, Recommendation } from "@/lib/types";
@@ -21,22 +21,14 @@ interface ProjectOverview {
 export default function ProjectOverviewPage() {
   const { id } = useParams();
   const projectId = id as string;
-  const [overview, setOverview] = useState<ProjectOverview | null>(null);
-  const [mastery, setMastery] = useState<ConceptMastery[]>([]);
-  const [recs, setRecs] = useState<Recommendation[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  const { data: overview, isLoading: overviewLoading } = useSWR<ProjectOverview>(`/projects/${projectId}/analytics`, swrFetcher);
+  const { data: masteryData, isLoading: masteryLoading } = useSWR<{ items: ConceptMastery[] }>(`/projects/${projectId}/mastery`, swrFetcher);
+  const { data: recsData, isLoading: recsLoading } = useSWR<{ items: Recommendation[] }>(`/projects/${projectId}/recommendations`, swrFetcher);
 
-  useEffect(() => {
-    Promise.all([
-      api.get<ProjectOverview>(`/projects/${projectId}/analytics`),
-      api.get<{ items: ConceptMastery[] }>(`/projects/${projectId}/mastery`),
-      api.get<{ items: Recommendation[] }>(`/projects/${projectId}/recommendations`),
-    ]).then(([o, m, r]) => {
-      setOverview(o);
-      setMastery(m.items);
-      setRecs(r.items);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, [projectId]);
+  const loading = overviewLoading || masteryLoading || recsLoading;
+  const mastery = masteryData?.items || [];
+  const recs = recsData?.items || [];
 
   if (loading) return <div className="flex items-center justify-center h-40"><Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" /></div>;
 

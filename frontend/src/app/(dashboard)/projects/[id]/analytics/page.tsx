@@ -4,9 +4,9 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { Loader2, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from "recharts";
 import type { AnalyticsData } from "@/lib/types";
@@ -14,15 +14,9 @@ import type { AnalyticsData } from "@/lib/types";
 export default function ProjectAnalyticsPage() {
   const { id } = useParams();
   const projectId = id as string;
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useSWR<AnalyticsData>(`/projects/${projectId}/analytics`, swrFetcher);
 
-  useEffect(() => {
-    api.get<AnalyticsData>(`/projects/${projectId}/analytics`)
-      .then(setData).catch(() => {}).finally(() => setLoading(false));
-  }, [projectId]);
-
-  if (loading) return <div className="flex items-center justify-center h-40"><Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" /></div>;
+  if (loading && !data) return <div className="flex items-center justify-center h-40"><Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" /></div>;
   if (!data) return <div className="text-center py-16 text-[var(--text-muted)]">No analytics data</div>;
 
   return (

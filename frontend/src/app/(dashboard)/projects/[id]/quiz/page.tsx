@@ -4,9 +4,10 @@
 
 "use client";
 
+import useSWR from "swr";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Brain, Loader2, CheckCircle, XCircle, ArrowRight, Trophy, RotateCcw, BookOpen, History, Trash2 } from "lucide-react";
 import type { QuizQuestion, QuizAnswer, QuizSummary, QuizListResponse, QuizRecord } from "@/lib/types";
@@ -27,36 +28,22 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [pastQuizzes, setPastQuizzes] = useState<QuizRecord[]>([]);
-  const [loadingPast, setLoadingPast] = useState(true);
+  const { data: pastQuizzesData, isLoading: loadingPast, mutate: mutatePastQuizzes } = useSWR<QuizListResponse>(
+    state === "idle" ? `/projects/${projectId}/quizzes` : null,
+    swrFetcher
+  );
+  const pastQuizzes = pastQuizzesData?.items || [];
 
-  const fetchPastQuizzes = async () => {
-    try {
-      setLoadingPast(true);
-      const data = await api.get<QuizListResponse>(`/projects/${projectId}/quizzes`);
-      setPastQuizzes(data.items);
-    } catch (err) {
-      console.error("Failed to fetch past quizzes", err);
-    } finally {
-      setLoadingPast(false);
-    }
-  };
-
-  const deleteQuiz = async (quizId: string) => {
+  const deleteQuiz = async (quizIdToDelete: string) => {
     if (!confirm("Are you sure you want to delete this quiz?")) return;
     try {
-      await api.delete(`/quiz/${quizId}`);
-      setPastQuizzes((prev) => prev.filter((q) => q.id !== quizId));
+      await api.delete(`/quiz/${quizIdToDelete}`);
+      const filteredQuizzes = pastQuizzes.filter((q) => q.id !== quizIdToDelete);
+      mutatePastQuizzes({ items: filteredQuizzes, total: filteredQuizzes.length }, false);
     } catch (err) {
       console.error("Failed to delete quiz", err);
     }
   };
-
-  useEffect(() => {
-    if (state === "idle") {
-      fetchPastQuizzes();
-    }
-  }, [projectId, state]);
 
   const startQuiz = async () => {
     setLoading(true);

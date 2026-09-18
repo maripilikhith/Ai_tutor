@@ -10,9 +10,9 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 import { formatDate } from "@/lib/utils";
 import {
@@ -46,22 +46,7 @@ interface HomeDashboard {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [data, setData] = useState<HomeDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const result = await api.get<HomeDashboard>("/home");
-        setData(result);
-      } catch {
-        // Allow dashboard to render even on API error
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const { data, isLoading: loading } = useSWR<HomeDashboard>("/home", swrFetcher);
 
   if (loading) {
     return (

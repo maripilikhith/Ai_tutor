@@ -4,9 +4,10 @@
 
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import useSWR from "swr";
+import { useState } from "react";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { Upload, FileText, Loader2, Trash2, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import type { Material } from "@/lib/types";
@@ -14,34 +15,17 @@ import type { Material } from "@/lib/types";
 export default function MaterialsPage() {
   const { id } = useParams();
   const projectId = id as string;
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const data = await api.get<{ items: Material[] }>(`/projects/${projectId}/materials`);
-      setMaterials(data.items);
-    } catch {} finally { setLoading(false); }
-  }, [projectId]);
+  const { data, isLoading: loading, mutate } = useSWR<{ items: Material[] }>(`/projects/${projectId}/materials`, swrFetcher, {
+    refreshInterval: (data) => {
+      const stillProcessing = data?.items.some((m) => m.status === "processing" || m.status === "queued");
+      return stillProcessing ? 5000 : 0;
+    }
+  });
 
-  useEffect(() => { load(); }, [load]);
-
-  // Keep a ref to current materials so the interval can read it without being in its deps
-  const materialsRef = useRef<Material[]>([]);
-  materialsRef.current = materials;
-
-  // Poll for processing status — single stable interval, never re-created
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const stillProcessing = materialsRef.current.some(
-        (m) => m.status === "processing" || m.status === "queued"
-      );
-      if (stillProcessing) load();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [load]); // load is stable (useCallback with [projectId])
+  const materials = data?.items || [];
 
   const handleUpload = async (files: FileList) => {
     setUploading(true);
@@ -52,13 +36,13 @@ export default function MaterialsPage() {
       } catch {}
     }
     setUploading(false);
-    load();
+    mutate();
   };
 
   const handleDelete = async (materialId: string) => {
     try {
       await api.delete(`/projects/${projectId}/materials/${materialId}`);
-      setMaterials((prev) => prev.filter((m) => m.id !== materialId));
+      mutate({ items: materials.filter((m) => m.id !== materialId) }, false);
     } catch {}
   };
 

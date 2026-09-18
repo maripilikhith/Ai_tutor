@@ -4,9 +4,10 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { Loader2, User, Search, ChevronRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -23,16 +24,9 @@ interface AdminUser {
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    api.get<{ items: AdminUser[] }>("/admin/users")
-      .then((d) => setUsers(d.items || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading: loading } = useSWR<{ items: AdminUser[] }>("/admin/users", swrFetcher);
+  const users = data?.items || [];
 
   const filtered = users.filter(
     (u) =>

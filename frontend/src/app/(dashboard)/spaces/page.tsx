@@ -7,9 +7,10 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { Plus, BookOpen, Loader2, X, Trash2 } from "lucide-react";
 import type { Space } from "@/lib/types";
@@ -21,31 +22,18 @@ const SPACE_COLORS = [
 const SPACE_ICONS = ["📚", "🧪", "💻", "🎨", "📐", "🌍", "🧠", "🎯"];
 
 export default function SpacesPage() {
-  const [spaces, setSpaces] = useState<Space[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading, mutate } = useSWR<{ items: Space[] }>("/spaces", swrFetcher);
+  const spaces = data?.items || [];
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Space | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    loadSpaces();
-  }, []);
-
-  async function loadSpaces() {
-    try {
-      const data = await api.get<{ items: Space[] }>("/spaces");
-      setSpaces(data.items);
-    } catch {} finally {
-      setLoading(false);
-    }
-  }
 
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
       await api.delete(`/spaces/${deleteTarget.id}`);
-      setSpaces((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      mutate({ items: spaces.filter((s) => s.id !== deleteTarget.id) }, false);
       setDeleteTarget(null);
     } catch {} finally {
       setDeleting(false);
@@ -126,7 +114,13 @@ export default function SpacesPage() {
 
       {/* Create Space Modal */}
       {showCreate && (
-        <CreateSpaceModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadSpaces(); }} />
+        <CreateSpaceModal
+          onClose={() => setShowCreate(false)}
+          onCreated={() => {
+            setShowCreate(false);
+            mutate();
+          }}
+        />
       )}
 
       {/* Delete Confirmation Modal */}

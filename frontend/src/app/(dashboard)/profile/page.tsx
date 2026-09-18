@@ -8,7 +8,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { api } from "@/lib/api";
+import useSWR from "swr";
+import { api, swrFetcher } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 import { User, Camera, Loader2, CheckCircle, Mail, BookOpen, Edit2, X } from "lucide-react";
 import { formatDate } from "@/lib/utils";
@@ -26,8 +27,7 @@ interface Profile {
 
 export default function ProfilePage() {
   const { user, updateUserMetadata } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: profile, isLoading: loading, mutate } = useSWR<Profile>("/profile", swrFetcher);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -41,18 +41,14 @@ export default function ProfilePage() {
   const [geminiApiKey, setGeminiApiKey] = useState("");
 
   useEffect(() => {
-    api.get<Profile>("/profile")
-      .then((data) => {
-        setProfile(data);
-        setName(data.full_name || "");
-        setBio(data.bio || "");
-        setAvatarUrl(data.avatar_url || "");
-        setUseCustomKey(data.use_custom_key || false);
-        setGeminiApiKey(data.gemini_api_key || "");
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    if (profile) {
+      setName(profile.full_name || "");
+      setBio(profile.bio || "");
+      setAvatarUrl(profile.avatar_url || "");
+      setUseCustomKey(profile.use_custom_key || false);
+      setGeminiApiKey(profile.gemini_api_key || "");
+    }
+  }, [profile]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -73,7 +69,7 @@ export default function ProfilePage() {
         }).catch(console.error);
       }
 
-      setProfile(updated);
+      mutate(updated);
       setSaved(true);
       setEditMode(false);
       setAvatarInput(false);
@@ -133,7 +129,7 @@ export default function ProfilePage() {
             </div>
             {editMode && (
               <button
-                onClick={() => setAvatarInput((v) => !v)}
+                onClick={() => setAvatarInput((v: boolean) => !v)}
                 className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-[var(--primary)] flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity"
                 title="Change avatar"
               >

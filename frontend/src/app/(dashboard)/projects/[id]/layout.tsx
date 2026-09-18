@@ -8,9 +8,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Loader2, BookOpen, MessageSquare, HelpCircle, BarChart3, TrendingUp, Brain } from "lucide-react";
 import type { Project } from "@/lib/types";
@@ -29,15 +30,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
   const params = useParams();
   const pathname = usePathname();
   const projectId = params.id as string;
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get<Project>(`/projects/${projectId}`)
-      .then(setProject)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { data: project, isLoading: loading } = useSWR<Project>(`/projects/${projectId}`, swrFetcher);
 
   if (loading) return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" /></div>;
   if (!project) return <div className="text-center py-20 text-[var(--text-muted)]">Project not found</div>;

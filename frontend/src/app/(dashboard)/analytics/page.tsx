@@ -4,21 +4,16 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import useSWR from "swr";
+import { api, swrFetcher } from "@/lib/api";
 import { Loader2, BarChart3 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import type { AnalyticsData } from "@/lib/types";
 
 export default function GlobalAnalyticsPage() {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useSWR<AnalyticsData>("/analytics", swrFetcher);
 
-  useEffect(() => {
-    api.get<AnalyticsData>("/analytics").then(setData).catch(() => {}).finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" /></div>;
+  if (loading && !data) return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" /></div>;
   if (!data) return <div className="text-center py-20 text-[var(--text-muted)]">No data available</div>;
 
   return (

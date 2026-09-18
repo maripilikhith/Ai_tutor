@@ -4,9 +4,9 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { getMasteryLevel, getTrendInfo } from "@/lib/utils";
 import { Brain, Loader2 } from "lucide-react";
 import type { ConceptMastery } from "@/lib/types";
@@ -14,17 +14,12 @@ import type { ConceptMastery } from "@/lib/types";
 export default function MasteryPage() {
   const { id } = useParams();
   const projectId = id as string;
-  const [mastery, setMastery] = useState<ConceptMastery[]>([]);
-  const [avgMastery, setAvgMastery] = useState(0);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get<{ items: ConceptMastery[]; avg_mastery: number }>(`/projects/${projectId}/mastery`)
-      .then((data) => { setMastery(data.items); setAvgMastery(data.avg_mastery); })
-      .catch(() => {}).finally(() => setLoading(false));
-  }, [projectId]);
+  const { data, isLoading: loading } = useSWR<{ items: ConceptMastery[]; avg_mastery: number }>(`/projects/${projectId}/mastery`, swrFetcher);
+  const mastery = data?.items || [];
+  const avgMastery = data?.avg_mastery || 0;
 
-  if (loading) return <div className="flex items-center justify-center h-40"><Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" /></div>;
+  if (loading && !data) return <div className="flex items-center justify-center h-40"><Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" /></div>;
 
   if (mastery.length === 0) {
     return (

@@ -205,3 +205,5 @@ export const api = {
     }
   },
 };
+
+export const swrFetcher = <T>(url: string): Promise<T> => api.get<T>(url);

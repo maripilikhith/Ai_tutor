@@ -4,9 +4,9 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { Loader2, Users, FolderOpen, Brain, AlertTriangle, Activity, Shield, Cpu } from "lucide-react";
 
 interface AdminDashboard {
@@ -19,12 +19,7 @@ interface AdminDashboard {
 }
 
 export default function AdminPage() {
-  const [data, setData] = useState<AdminDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get<AdminDashboard>("/admin/dashboard").then(setData).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading: loading } = useSWR<AdminDashboard>("/admin/dashboard", swrFetcher);
 
   if (loading) return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" /></div>;
 
