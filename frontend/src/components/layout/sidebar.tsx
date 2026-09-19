@@ -13,8 +13,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import useSWR from "swr";
 import { useAuth } from "@/components/providers/auth-provider";
-import { api } from "@/lib/api";
+import { api, swrFetcher } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -44,6 +45,11 @@ interface SidebarSpace {
   id: string;
   name: string;
   projects: ProjectSimple[];
+}
+
+interface ProfileData {
+  full_name: string;
+  avatar_url: string | null;
 }
 
 const navItems = [
@@ -175,6 +181,7 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { data: profile } = useSWR<ProfileData>("/profile", swrFetcher);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -330,18 +337,18 @@ export function Sidebar() {
       <div className="px-3 py-3 border-t border-[var(--border-default)] sticky bottom-0 bg-[var(--bg-secondary)] z-10">
         <Link href="/profile" className="flex items-center gap-3 rounded-lg p-1 hover:bg-[var(--bg-card-hover)] transition-colors group">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent-cyan)] flex items-center justify-center flex-shrink-0 overflow-hidden">
-            {user?.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+            {profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+              <img src={profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture} alt="avatar" className="w-full h-full object-cover" />
             ) : (
               <span className="text-xs font-bold text-white">
-                {(user?.user_metadata?.full_name || user?.email || "U").charAt(0).toUpperCase()}
+                {(profile?.full_name || user?.user_metadata?.full_name || user?.email || "U").charAt(0).toUpperCase()}
               </span>
             )}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--primary-light)] transition-colors">
-                {user?.user_metadata?.full_name || "Student"}
+                {profile?.full_name || user?.user_metadata?.full_name || "Student"}
               </p>
               <p className="text-xs text-[var(--text-muted)] truncate">
                 {user?.email}
